@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  web-app:
+    build: .
+    container_name: admin_feedback_app
+    ports:
+      - "3075:3075"
+    restart: always
+
+    
