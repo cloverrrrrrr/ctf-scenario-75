@@ -7,7 +7,7 @@ echo "[*] Initializing Cyber Range Environment Setup..."
 
 # Update and install critical requirements
 apt-get update -y
-apt-get install -y docker.io docker-compose python3 openssh-server
+apt-get install -y docker.io docker-compose python3 openssh-server npm nodejs
 
 # 1. Configure Custom Blue Team SSH Access 
 # Credentials: analyst / blue_team_rocks
