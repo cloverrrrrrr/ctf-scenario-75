@@ -9,7 +9,7 @@ echo "[*] Initializing Cyber Range Environment Setup..."
 apt-get update -y
 apt-get install -y docker.io docker-compose python3 openssh-server npm nodejs
 
-# 1. Configure Custom Blue Team SSH Access 
+# 1. Configure Custom Blue Team SSH Access
 # Credentials: analyst / blue_team_rocks
 USERNAME="analyst"
 PASSWORD="blue_team_rocks"
@@ -31,6 +31,8 @@ python3 generate_logs.py
 # 3. Fire up the containerized Vulnerable Web Application Architecture
 echo "[*] Building and running the application container fabric via Docker Compose..."
 docker-compose up -d --build
+
+npm install
 
 echo "================================================================="
 echo "[+] CAPTURE THE FLAG RANGE SETUP SUCCESSFULLY ENGINE DEPLOYED"
