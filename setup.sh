@@ -30,9 +30,8 @@ python3 generate_logs.py
 
 # 3. Fire up the containerized Vulnerable Web Application Architecture
 echo "[*] Building and running the application container fabric via Docker Compose..."
+docker-compose down 2>/dev/null || true
 docker-compose up -d --build
-
-npm install
 
 echo "================================================================="
 echo "[+] CAPTURE THE FLAG RANGE SETUP SUCCESSFULLY ENGINE DEPLOYED"
